@@ -41,15 +41,35 @@ func (m model) defaultUpdate(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		key := msg.String()
-		if key == "enter" {
+		if key == "enter" { // Открыть группу
 			return m.openGroup()
-		} else if key == "right" || key == "l" {
+		} else if key == "right" || key == "l" { // Редактировать выбранную группу
 			items := m.groupList.Items()
 			if len(items) != 0 {
 				m.focusedGroup = items[m.groupList.Index()].(group)
 				m.focusedGroup.SetFocus(true)
 				m.isEditMode = true
 			}
+			return m, nil
+		} else if key == "d" { // Удалить выбранную группу
+			if item := m.groupList.SelectedItem(); item != nil {
+				// todo delete from db
+				m.groupList.RemoveItem(m.groupList.Index())
+			}
+			return m, nil
+		} else if key == "a" { // Создать группу
+			newGroup := group{
+				title:     "new group",
+				isFocused: true,
+				id:        -1,
+			}
+			newGroup.SetFocus(true)
+			m.groupList.InsertItem(len(m.groupList.Items()), newGroup)
+			m.groupList.Select(len(m.groupList.Items()) - 1)
+			m.focusedGroup = newGroup
+			m.isEditMode = true
+
+			return m, nil
 		}
 	case tea.WindowSizeMsg:
 		h, v := groupListStyle.GetFrameSize()
@@ -105,5 +125,8 @@ func (m model) View() string {
 }
 
 func (m model) openGroup() (tea.Model, tea.Cmd) {
+	if item := m.groupList.SelectedItem(); item != nil {
+		return makeGroupMenu(m, item.(group).id), nil
+	}
 	return m, nil
 }
