@@ -5,9 +5,7 @@ import (
 	"github.com/charmbracelet/bubbles/key"
 )
 
-type keyMap struct {
-	m *model
-}
+type keyMap struct{}
 
 func (k keyMap) ShortHelp() []key.Binding {
 	return []key.Binding{}
@@ -15,8 +13,14 @@ func (k keyMap) ShortHelp() []key.Binding {
 func (k keyMap) FullHelp() [][]key.Binding {
 	return [][]key.Binding{
 		{
-			k.m.groupList.KeyMap.CursorUp,
-			k.m.groupList.KeyMap.CursorDown,
+			key.NewBinding(
+				key.WithKeys("up", "k"),
+				key.WithHelp("↑/k", "up"),
+			),
+			key.NewBinding(
+				key.WithKeys("down", "j"),
+				key.WithHelp("↓/j", "down"),
+			),
 			key.NewBinding(
 				key.WithKeys("right", "l"),
 				key.WithHelp("→/l", "open edit mode"),
@@ -44,10 +48,8 @@ func (m helpModel) View() string {
 	return m.FullHelpView(m.k.FullHelp())
 }
 
-func makeHelp(m *model) helpModel {
-	km := keyMap{
-		m: m,
-	}
+func makeHelp() helpModel {
+	km := keyMap{}
 	help := helpModel{
 		Model: help.New(),
 		k:     km,

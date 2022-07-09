@@ -19,7 +19,7 @@ type model struct {
 func MakeModel() model {
 	m := model{}
 	m.groupList = makeGroupList(m)
-	m.help = makeHelp(&m)
+	m.help = makeHelp()
 	return m
 }
 
@@ -56,6 +56,7 @@ func (m model) defaultUpdate(msg tea.Msg) (tea.Model, tea.Cmd) {
 		} else if key == "d" { // Удалить выбранную группу
 			if item := m.groupList.SelectedItem(); item != nil {
 				m.groupList.RemoveItem(m.groupList.Index())
+				m.groupList.ResetSelected()
 				err := db.RemoveGroupById(item.(group).id)
 				if err != nil {
 					panic(err)
@@ -76,9 +77,6 @@ func (m model) defaultUpdate(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 			return m, nil
 		}
-	case tea.WindowSizeMsg:
-		h, v := groupListStyle.GetFrameSize()
-		m.groupList.SetSize(msg.Width-h, msg.Height-v)
 	}
 	var cmd tea.Cmd
 	m.groupList, cmd = m.groupList.Update(msg)

@@ -6,12 +6,13 @@ type Card struct {
 	FullDesc  string
 
 	Id       int
+	GroupId  int
 	LearnVal float64
 }
 
 func CardsOfGroup(groupId int) ([]Card, error) {
 	sqlQueue := `
-		SELECT id, learn_val, title, short_dec, full_desc 
+		SELECT id, group_id, learn_val, title, short_desc, full_desc 
 		FROM cards
 		WHERE group_id=?`
 
@@ -24,7 +25,7 @@ func CardsOfGroup(groupId int) ([]Card, error) {
 	var cards []Card
 	for rows.Next() {
 		var card Card
-		err := rows.Scan(&card.Id, &card.LearnVal, &card.Title, &card.ShortDesc, &card.FullDesc)
+		err := rows.Scan(&card.Id, &card.GroupId, &card.LearnVal, &card.Title, &card.ShortDesc, &card.FullDesc)
 		if err != nil {
 			return nil, err
 		}
@@ -49,5 +50,13 @@ func UpdateCard(c Card) error {
 		WHERE id=?`
 
 	_, err := db.Exec(sqlQueue, c.LearnVal, c.Title, c.ShortDesc, c.FullDesc, c.Id)
+	return err
+}
+func AddCard(c Card) error {
+	sqlQueue := `
+		INSERT INTO cards (group_id, learn_val, title, short_desc, full_desc)
+		VALUES (?, ?, ?, ?, ?)`
+
+	_, err := db.Exec(sqlQueue, c.GroupId, c.LearnVal, c.Title, c.ShortDesc, c.FullDesc)
 	return err
 }

@@ -1,6 +1,8 @@
 package tui
 
 import (
+	"fmt"
+
 	"github.com/charmbracelet/bubbles/list"
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
@@ -155,15 +157,155 @@ func (g group) View() string {
 
 type card struct {
 	title      string
-	desc       string
+	shortDesc  string
+	fullDesc   string
 	id         int
 	groupId    int
 	learnValue float64
+
+	isFocused      bool
+	isTypingMode   bool
+	cursor         int
+	titleInput     textinput.Model
+	shortDescInput textinput.Model
+	fullDescInput  textinput.Model
 }
 
 func (i card) Title() string       { return i.title }
-func (i card) Description() string { return i.desc }
+func (i card) Description() string { return i.shortDesc }
 func (i card) FilterValue() string { return i.title }
+
+func (c *card) SetFocus(focus bool) {
+	c.isFocused = focus
+	c.cursor = 0
+	c.titleInput.SetValue(c.title)
+	c.titleInput.SetCursorMode(textinput.CursorStatic)
+
+	c.shortDescInput.SetValue(c.shortDesc)
+	c.shortDescInput.SetCursorMode(textinput.CursorStatic)
+
+	c.fullDescInput.SetValue(c.fullDesc)
+	c.fullDescInput.SetCursorMode(textinput.CursorStatic)
+
+}
+
+func (c card) EditModeUpdate(msg tea.Msg) (card, tea.Cmd) {
+	if c.isTypingMode {
+		if key, ok := msg.(tea.KeyMsg); ok && key.String() == "esc" {
+			c.isTypingMode = false
+			c.title = c.titleInput.Value()
+			c.shortDesc = c.shortDescInput.Value()
+			c.fullDesc = c.fullDescInput.Value()
+			if c.cursor == 0 {
+				c.titleInput.Blur()
+			} else if c.cursor == 1 {
+				c.shortDescInput.Blur()
+			} else if c.cursor == 2 {
+				c.fullDescInput.Blur()
+			}
+			return c, nil
+		}
+		var cmd tea.Cmd
+		if c.cursor == 0 {
+			c.titleInput, cmd = c.titleInput.Update(msg)
+		} else if c.cursor == 1 {
+			c.shortDescInput, cmd = c.shortDescInput.Update(msg)
+		} else if c.cursor == 2 {
+			c.fullDescInput, cmd = c.fullDescInput.Update(msg)
+		}
+		return c, cmd
+	}
+
+	switch msg := msg.(type) {
+	case tea.KeyMsg:
+		key := msg.String()
+		if key == "up" || key == "k" {
+			if c.cursor > 0 {
+				c.cursor--
+			}
+		} else if key == "down" || key == "j" {
+			if c.cursor < 2 {
+				c.cursor++
+			}
+		} else if key == "enter" {
+			c.isTypingMode = true
+			var cmd tea.Cmd
+			if c.cursor == 0 {
+				cmd = c.titleInput.Focus()
+			} else if c.cursor == 1 {
+				cmd = c.shortDescInput.Focus()
+			} else if c.cursor == 2 {
+				cmd = c.fullDescInput.Focus()
+			}
+
+			return c, cmd
+		}
+	}
+	return c, nil
+}
+
+func (c card) View() string {
+	selectedHeaderStyle := defaultItemStyles.NormalTitle.Copy().Foreground(defaultItemStyles.SelectedDesc.GetForeground())
+	selectedDescHeaderStyle := groupRightPanelDescTitle.Copy().Foreground(defaultItemStyles.SelectedDesc.GetForeground())
+	selectedBodyStyle := groupRightPanelDescBody.Copy().Foreground(defaultItemStyles.SelectedDesc.GetForeground())
+	sections := []string{}
+
+	{
+		header := "CARD:"
+		title := c.title
+		if c.isTypingMode && c.cursor == 0 {
+			title = c.titleInput.View()
+		}
+
+		if c.isFocused && c.cursor == 0 {
+			header = selectedHeaderStyle.Render(header)
+			title = selectedHeaderStyle.Render(title)
+		} else {
+			header = defaultItemStyles.NormalTitle.Render(header)
+			title = groupRightPanelDescBody.Render(title)
+		}
+		sections = append(sections, header+title+"\n")
+	}
+	{
+		header := "SHORT DESC:"
+		shortDesc := c.shortDesc
+		if c.isTypingMode && c.cursor == 1 {
+			shortDesc = c.shortDescInput.View()
+		}
+
+		if c.isFocused && c.cursor == 1 {
+			header = selectedHeaderStyle.Render(header)
+			shortDesc = selectedBodyStyle.Render(shortDesc)
+		} else {
+			header = defaultItemStyles.NormalTitle.Render(header)
+			shortDesc = groupRightPanelDescBody.Render(shortDesc)
+		}
+		sections = append(sections, header+shortDesc+"\n")
+	}
+	{
+		header := "FULL DESC"
+		fullDesc := c.fullDesc
+		if c.isTypingMode && c.cursor == 2 {
+			fullDesc = c.fullDescInput.View()
+		}
+
+		if c.isFocused && c.cursor == 2 {
+			header = selectedDescHeaderStyle.Render(header)
+			fullDesc = selectedBodyStyle.Render(fullDesc)
+		} else {
+			header = groupRightPanelDescTitle.Render(header)
+			fullDesc = groupRightPanelDescBody.Render(fullDesc)
+		}
+		sections = append(sections, header+fullDesc)
+	}
+	{
+		header := defaultItemStyles.NormalTitle.Render("LEARNING VAL:")
+		val := groupRightPanelDescBody.Render(fmt.Sprintf("%f", c.learnValue))
+		sections = append(sections, header+val)
+	}
+
+	return lipgloss.JoinVertical(lipgloss.Left, sections...)
+}
 
 func makeGroupList(m model) list.Model {
 	var items []list.Item
@@ -180,7 +322,7 @@ func makeGroupList(m model) list.Model {
 		})
 	}
 
-	groupList := list.New(items, list.NewDefaultDelegate(), 0, 0)
+	groupList := list.New(items, list.NewDefaultDelegate(), groupListStyle.GetWidth(), groupListStyle.GetHeight())
 	groupList.Title = "Groups"
 	groupList.SetShowHelp(false)
 	groupList.SetShowPagination(false)
@@ -188,4 +330,30 @@ func makeGroupList(m model) list.Model {
 	groupList.KeyMap.NextPage.SetEnabled(false)
 	groupList.DisableQuitKeybindings()
 	return groupList
+}
+
+func makeCardList(m groupMenuModel) list.Model {
+	var items []list.Item
+	cards, err := db.CardsOfGroup(m.groupId)
+	if err != nil {
+		panic(err)
+	}
+	for _, c := range cards {
+		items = append(items, card{
+			id:         c.Id,
+			groupId:    c.GroupId,
+			learnValue: c.LearnVal,
+			title:      c.Title,
+			shortDesc:  c.ShortDesc,
+			fullDesc:   c.FullDesc,
+		})
+	}
+	cardList := list.New(items, list.NewDefaultDelegate(), groupListStyle.GetWidth(), groupListStyle.GetHeight())
+	cardList.Title = "Groups > Cards"
+	cardList.SetShowHelp(false)
+	cardList.SetShowPagination(false)
+	cardList.KeyMap.PrevPage.SetEnabled(false)
+	cardList.KeyMap.NextPage.SetEnabled(false)
+	cardList.DisableQuitKeybindings()
+	return cardList
 }
