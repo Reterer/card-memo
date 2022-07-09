@@ -5,6 +5,8 @@ import (
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+
+	db "github.com/Reterer/card-memo/console-app/model"
 )
 
 type group struct {
@@ -164,30 +166,18 @@ func (i card) Description() string { return i.desc }
 func (i card) FilterValue() string { return i.title }
 
 func makeGroupList(m model) list.Model {
-	items := []list.Item{
-		group{title: "Raspberry Pi’s", shortDesc: "I have ’em all over my house"},
-		group{title: "Nutella", shortDesc: "It's good on toast"},
-		group{title: "Bitter melon", shortDesc: "It cools you down"},
-		group{title: "Nice socks", shortDesc: "And by that I mean socks without holes"},
-		group{title: "Eight hours of sleep", shortDesc: "I had this once"},
-		group{title: "Cats", shortDesc: "Usually"},
-		group{title: "Plantasia, the album", shortDesc: "My plants love it too"},
-		group{title: "Pour over coffee", shortDesc: "It takes forever to make though"},
-		group{title: "VR", shortDesc: "Virtual reality...what is there to say?"},
-		group{title: "Noguchi Lamps", shortDesc: "Such pleasing organic forms"},
-		group{title: "Linux", shortDesc: "Pretty much the best OS", fullDesc: `
-Quit is a convenience function for quitting Bubble Tea programs.Use it when you need to shut down a Bubble Tea program from the 
-outside. If you wish to quit from within a Bubble 
-Tea program use \ the Quit command. 
-If the program is not running this will be 
-a no-op, so it's safe to 
-call if the program is unstarted or has 
-already exited.
-		`},
-		group{title: "Business school", shortDesc: "Just kidding"},
-		group{title: "Pottery", shortDesc: "Wet clay is a great feeling"},
-		group{title: "Shampoo", shortDesc: "Nothing like clean hair"},
-		group{title: "Table tennis", shortDesc: "It’s surprisingly exhausting"},
+	var items []list.Item
+	groups, err := db.Groups()
+	if err != nil {
+		panic(err)
+	}
+	for _, g := range groups {
+		items = append(items, group{
+			id:        g.Id,
+			title:     g.Title,
+			shortDesc: g.ShortDesc,
+			fullDesc:  g.FullDesc,
+		})
 	}
 
 	groupList := list.New(items, list.NewDefaultDelegate(), 0, 0)

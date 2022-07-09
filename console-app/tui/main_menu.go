@@ -4,6 +4,8 @@ import (
 	"github.com/charmbracelet/bubbles/list"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+
+	db "github.com/Reterer/card-memo/console-app/model"
 )
 
 type model struct {
@@ -53,8 +55,11 @@ func (m model) defaultUpdate(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, nil
 		} else if key == "d" { // Удалить выбранную группу
 			if item := m.groupList.SelectedItem(); item != nil {
-				// todo delete from db
 				m.groupList.RemoveItem(m.groupList.Index())
+				err := db.RemoveGroupById(item.(group).id)
+				if err != nil {
+					panic(err)
+				}
 			}
 			return m, nil
 		} else if key == "a" { // Создать группу
@@ -86,9 +91,26 @@ func (m model) editModeUpdate(msg tea.Msg) (tea.Model, tea.Cmd) {
 		switch msg := msg.(type) {
 		case tea.KeyMsg:
 			key := msg.String()
-			if key == "left" || key == "h" {
+			if key == "left" || key == "h" || key == "esc" {
 				if len(items) != 0 {
 					m.focusedGroup.SetFocus(false)
+					dbgroup := db.Group{
+						Title:     m.focusedGroup.title,
+						ShortDesc: m.focusedGroup.shortDesc,
+						FullDesc:  m.focusedGroup.fullDesc,
+						Id:        m.focusedGroup.id,
+					}
+					if m.focusedGroup.id == -1 {
+						err := db.AddGroup(dbgroup)
+						if err != nil {
+							panic(err)
+						}
+					} else {
+						err := db.UpdateGroup(dbgroup)
+						if err != nil {
+							panic(err)
+						}
+					}
 					cmd := m.groupList.SetItem(m.groupList.Index(), m.focusedGroup)
 					m.isEditMode = false
 					return m, cmd
