@@ -60,3 +60,13 @@ func AddCard(c Card) error {
 	_, err := db.Exec(sqlQueue, c.GroupId, c.LearnVal, c.Title, c.ShortDesc, c.FullDesc)
 	return err
 }
+func UpdateCardLearningVal(c Card, ans float64) (float64, error) {
+	sqlQueue := `
+	UPDATE cards
+	SET learn_val=?
+	WHERE id=?`
+
+	learningVal := c.LearnVal*0.8 + ans*0.2
+	_, err := db.Exec(sqlQueue, learningVal, c.Id)
+	return learningVal, err
+}

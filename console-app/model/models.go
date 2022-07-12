@@ -64,8 +64,7 @@ func CreateTables() error {
 	tableCards := `
 		CREATE TABLE cards (
 			id INTEGER PRIMARY KEY,
-			group_id INTEGER FOREGIN KEY REFERENCES groups (id)
-								ON DELETE CASCADE,
+			group_id INTEGER FOREGIN KEY REFERENCES groups (id) ON DELETE CASCADE,
 			learn_val REAL,
 			title TEXT NOT NULL,
 			short_desc TEXT,

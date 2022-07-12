@@ -339,14 +339,7 @@ func makeCardList(m groupMenuModel) list.Model {
 		panic(err)
 	}
 	for _, c := range cards {
-		items = append(items, card{
-			id:         c.Id,
-			groupId:    c.GroupId,
-			learnValue: c.LearnVal,
-			title:      c.Title,
-			shortDesc:  c.ShortDesc,
-			fullDesc:   c.FullDesc,
-		})
+		items = append(items, dbCardToTuiCard(c))
 	}
 	cardList := list.New(items, list.NewDefaultDelegate(), groupListStyle.GetWidth(), groupListStyle.GetHeight())
 	cardList.Title = "Groups > Cards"
@@ -356,4 +349,15 @@ func makeCardList(m groupMenuModel) list.Model {
 	cardList.KeyMap.NextPage.SetEnabled(false)
 	cardList.DisableQuitKeybindings()
 	return cardList
+}
+
+func dbCardToTuiCard(c db.Card) card {
+	return card{
+		id:         c.Id,
+		groupId:    c.GroupId,
+		learnValue: c.LearnVal,
+		title:      c.Title,
+		shortDesc:  c.ShortDesc,
+		fullDesc:   c.FullDesc,
+	}
 }

@@ -76,6 +76,8 @@ func (m model) defaultUpdate(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.isEditMode = true
 
 			return m, nil
+		} else if key == "e" {
+			return m.openRepeat()
 		}
 	}
 	var cmd tea.Cmd
@@ -147,6 +149,13 @@ func (m model) View() string {
 func (m model) openGroup() (tea.Model, tea.Cmd) {
 	if item := m.groupList.SelectedItem(); item != nil {
 		return makeGroupMenu(m, item.(group).id), nil
+	}
+	return m, nil
+}
+
+func (m model) openRepeat() (tea.Model, tea.Cmd) {
+	if item := m.groupList.SelectedItem(); item != nil {
+		return MakeRepeatMenuModel(m, item.(group).id), nil
 	}
 	return m, nil
 }
